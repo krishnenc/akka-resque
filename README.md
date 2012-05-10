@@ -45,12 +45,12 @@ How it Works
 
   The workers need to be started using the org.akkaresque.Worker object.
   The constructor expects the following values : 
-    system : The Actor System where the worker will be created
-    queues : A list of queues that the worker has to listen to
-    redisServer : The address of the Redis server 
-    redisPort : The port of the Redis server
-    timeout : The amount in seconds it should wait on a queue when doing a BLPOP command
-    interval : It will poll the queues in the interval specified in seconds
+    * system : The Actor System where the worker will be created
+    * queues : A list of queues that the worker has to listen to
+    * redisServer : The address of the Redis server 
+    * redisPort : The port of the Redis server
+    * timeout : The amount in seconds it should wait on a queue when doing a BLPOP command
+    * interval : It will poll the queues in the interval specified in seconds
     
   You can start as many workers as you want. To create a worker and start it :
      
