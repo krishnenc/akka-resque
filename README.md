@@ -1,6 +1,6 @@
 Akka-Resque
 ===========
-A Resque clone written using Scala/Akka
+A Resque clone written using Scala/Akka.
 
 [Resque](http://github.com/defunkt/resque) is a fantastic background job processing software written by the github developers.
 The web interface provides lots of cool metrics on background jobs (number processed, failed etc..).
