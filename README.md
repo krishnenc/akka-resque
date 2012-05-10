@@ -53,7 +53,8 @@ How it Works
     interval : It will poll the queues in the interval specified in seconds
     
   You can start as many workers as you want. To create a worker and start it :
-    
+     
+    <pre lang="scala"><code>  
      import akka.actor.{ Actor , ActorSystem }
      import org.akkaresque.Worker
      
@@ -63,6 +64,7 @@ How it Works
 			val worker = Worker(testActorSystem, List("Spam","Soda"), "localhost", 6379, 5,5)     	   
      	}
      }
+    </code></pre>
   
   The worker reference is returned back. You can choose to keep it and kill the actor later by either stopping it or sending it a poison pill. 
   This will take care of cleaning up the resources taken by the worker.
@@ -73,6 +75,7 @@ How it Works
 
   An example actor which would handle the job created above :
       
+     <pre lang="scala"><code>  
       import akka.actor.{ Actor , ActorSystem }
       import org.akkaresque.perform
   
@@ -89,6 +92,7 @@ How it Works
 	      }
 	  }
 	}
+    </code></pre>
 
   You need to reply to the worker that sent the job with a message to indicate that it completed. On failure always send akka.actor.Status.Failure so it knows it fails and logs it as such
   The only difference in resque web is the workers are named differently and the class names are replaced with actor reference paths.
