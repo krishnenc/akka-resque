@@ -1,6 +1,6 @@
 Akka-Resque
-=======================================
-A resque clone written using Scala/Akka
+===========
+A Resque clone written using Scala/Akka
 
 [Resque](http://github.com/defunkt/resque) is a fantastic background job processing software written by the github developers.
 The web interface provides lots of cool metrics on background jobs (number processed, failed etc..).
@@ -29,7 +29,8 @@ How it Works
      Use the ResQ object.The constructor expects the Redis connection params. If none provided it assumes the default localhost and port 6379.
      The enqueue method accepts as parameters either the path of the Actor which will perform the job or its Actor Reference and a list of arguments to pass to its perform message.
      It currently accepts only a list of string as arguments for the moment.
-         
+     
+     <pre lang="scala"><code>  
      import org.akkaresque.ResQ
      
      object Demo {
@@ -38,6 +39,7 @@ How it Works
   			res.enqueue("akka://MyApplication/user/MyWorker", "Spam", List("1", "2", "3"))
   		}
   	  }
+     </code></pre>
      
 * Workers   
 
