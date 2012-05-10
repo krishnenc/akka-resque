@@ -10,7 +10,7 @@ I was heavily inspired by the work done on [Pyres](http://github.com/binarydud/p
 
 Installation
 ------------
-Use sbt to build the project. Currently it depends on version 0.11.2. Publish it to your local ivy repo and add it as a dependency to your project.
+Use sbt to build the project. Currently it depends on version 0.11.3. Publish it to your local ivy repo and add it as a dependency to your project.
 
 * sbt compile
 * sbt publish-local
