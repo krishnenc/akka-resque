@@ -1,8 +1,6 @@
 import sbt._
 import Keys._
 import com.typesafe.startscript.StartScriptPlugin
-import akka.sbt.AkkaKernelPlugin
-import akka.sbt.AkkaKernelPlugin.{ Dist, outputDirectory, distJvmOptions }
 import cc.spray.revolver.RevolverPlugin._
 import classpath.ClasspathUtilities.isArchive
 import java.io.FileOutputStream
@@ -34,59 +32,10 @@ object Build extends sbt.Build {
 
   override lazy val settings = super.settings ++ globalSettings
 
-  lazy val merge = TaskKey[File]("merge-reference",
-    "merge all reference.conf")
-
-  lazy val mergeSettings: Seq[Project.Setting[_]] = Seq(
-    merge <<= (fullClasspath in assembly) map { c =>
-      // collect from all elements of the full classpath
-      val (libs, dirs) =
-        c map (_.data) partition (isArchive)
-      // goal is to simply concatenate files here
-      val dest = file("reference.conf")
-      val out = new FileOutputStream(dest)
-      val append = IO.transfer(_: File, out)
-      try {
-        // first collect from managed sources
-        (dirs * "reference.conf").get foreach append
-        // then from dependency jars by unzipping and
-        // collecting reference.conf if present
-        for (lib <- libs) {
-          IO withTemporaryDirectory { dir =>
-            IO.unzip(lib, dir, "reference.conf")
-            (dir * "reference.conf").get foreach append
-          }
-        }
-        // return merged file location as task result
-        dest
-      } finally {
-        out.close()
-      }
-    },
-
-     // get rid of the individual files from jars
-    excludedFiles in assembly <<=
-      (excludedFiles in assembly) {
-        (old) =>
-          (bases) =>
-            old(bases) ++ (bases flatMap (base =>
-              (base / "reference.conf").get))
-      },
-
-    // tell sbt-assembly to include our merged file
-    assembledMappings in assembly <<=
-      (assembledMappings in assembly, merge) map {
-        (old, merged) =>
-          (f) =>
-            old(f) :+ (merged, "reference.conf")
-      })
-
-  lazy val scalaResqueWorker = Project("Akka-Resque",
+  lazy val akkaResque = Project("Akka-Resque",
     file("."),
-    settings = projectSettings ++ assemblySettings ++ mergeSettings ++
-    		   Revolver.settings ++ AkkaKernelPlugin.distSettings ++ Seq(
-      distJvmOptions in Dist := "-Xms256M -Xmx1024M",
-      outputDirectory in Dist := file("target")) ++
+    settings = projectSettings ++ assemblySettings ++
+    		   Revolver.settings ++ 
       StartScriptPlugin.startScriptForJarSettings ++
       Seq(libraryDependencies ++= Seq(
         Compile.akkaActor,
@@ -102,8 +51,6 @@ object Build extends sbt.Build {
 }
 
 object Dependencies {
-
-  //val repoMgr = "127.0.0.1"
 
   val resolutionRepos = Seq(
     "Scala Tools" at "http://scala-tools.org/repo-releases/",
