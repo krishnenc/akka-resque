@@ -104,9 +104,9 @@ Gotchas
 
 TODO
 ----
-*Write a complete test suite
-*Provide Examples
-*Allow usage of configuration files to configure it.
+* Write a complete test suite
+* Provide Examples
+* Allow usage of configuration files to configure it.
 
 Patches
 -------
