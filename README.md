@@ -49,7 +49,7 @@ How it Works
     * queues : A list of queues that the worker has to listen to
     * redisServer : The address of the Redis server 
     * redisPort : The port of the Redis server
-    * timeout : The amount in seconds it should wait on a queue when doing a BLPOP command
+    * timeout : The amount in seconds it should wait on the queues when doing a BLPOP command
     * interval : It will poll the queues in the interval specified in seconds
     
   You can start as many workers as you want. To create a worker and start it :
