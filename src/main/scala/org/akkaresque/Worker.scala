@@ -3,7 +3,7 @@ package org.akkaresque
 import cc.spray.json._
 import com.redis._
 import org.akkaresque.Machine._
-import akka.actor.{ Actor, ActorRef, PoisonPill, ActorLogging, ActorSystem, Props }
+import akka.actor.{ Actor, ActorRef, PoisonPill, ActorLogging, ActorSystem, Props,ActorContext }
 import akka.event.LoggingReceive
 import akka.util.duration._
 import akka.util.Duration
@@ -24,7 +24,7 @@ case class jobFailed(ex: Exception, job: Job)
      Send it a poison pill if you want to shut it down -it should clean itself up before shutting down
  */
 object Worker {
-  def apply(system: ActorSystem,
+  def apply(system: ActorContext,
 		    queues: List[String],
 		    redisServer: String = "localhost",
 		    redisPort: Int = 6379,
@@ -107,7 +107,7 @@ class Worker(queues: List[String],
 
   def receive = LoggingReceive {
     case work(msg) =>
-      log.info("Checking for jobs")
+      //log.info("Checking for jobs")
       DoWork
     case jobPassed(job) =>
       log.info("Job Passed")
