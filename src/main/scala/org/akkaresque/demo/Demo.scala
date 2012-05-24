@@ -4,6 +4,7 @@ import akka.actor.{ Actor, ActorRef, PoisonPill, ActorLogging, ActorSystem, Prop
 import org.akkaresque.perform
 import org.akkaresque.ResQ
 import org.akkaresque.Worker
+import org.akkaresque.work
 
 object Demo {
   def main(args: Array[String]): Unit = {
@@ -18,8 +19,10 @@ object Demo {
       println("Queued")
       r.redis_cli.disconnect
       //Create a worker which will handle the job queued
-      val worker = Worker(testActorSystem, List("Spam","Soda"), "localhost", 6379, 5,5)
+      //val worker = Worker(testActorSystem, List("Spam","Soda"), "localhost", 6379, 5,5)
       //Wait for Job to finish
+       val worker = testActorSystem.actorOf(Props(new Worker(List("Spam","Soda"), "localhost", 6379,0,5)))
+       worker ! work("bang!")
       //Thread.sleep(5000)
       //worker ! PoisonPill
     } catch {

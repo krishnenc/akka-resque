@@ -21,48 +21,57 @@ object workerDataJsonProtocol extends DefaultJsonProtocol {
 
 object ResQ {
   def apply(host: String = "localhost",
-		  	port: Int = 6379): ResQ = {
+    port: Int = 6379): ResQ = {
     new ResQ(new RedisClient(host, port))
   }
 }
 
 class ResQ(redis: RedisClient)
-  		  extends DefaultJsonProtocol {
+  extends DefaultJsonProtocol {
   import PayloadJsonProtocol._
 
   val _watched_queues = collection.mutable.Set.empty[String]
   val redis_cli = redis
 
-  def watch_queue(queue : String) = {
-   if (!_watched_queues.contains(queue))
-   {
-     redis_cli.sadd("resque:queues",queue)
+  def watch_queue(queue: String) = {
+    if (!_watched_queues.contains(queue)) {
+      redis_cli.sadd("resque:queues", queue)
       _watched_queues.add(queue)
-   }
+    }
   }
   def push(queue: String, item: String) {
     watch_queue(queue)
     redis.rpush("resque:queue:%s".format(queue), item)
   }
   def pop(timeout: Int, queues: List[String]) = {
-    val formatted_keys = queues map(q => "resque:queue:%s".format(q))
-    val ret = redis.blpop(timeout, "dummy", formatted_keys: _*)
-    ret match {
-      case None =>
-        None
-      case Some(x) =>
-        Some(x._1.substring(13, x._1.length), JsonParser(x._2).convertTo[Payload])
-    }
+    val formatted_keys = queues map (q => "resque:queue:%s".format(q))
+    //val ret = redis.blpop(timeout, "dummy", formatted_keys: _*)
+    listPop(0 ,formatted_keys)
   }
+
+  def listPop(index: Int, queues: List[String]): Option[(java.lang.String, org.akkaresque.Payload)] =
+    {
+      val ret = redis.lpop(queues(index))
+      ret match {
+        case Some(value) =>
+          Some(queues(index).substring(13, queues(index).length), JsonParser(value).convertTo[Payload])
+        case None =>
+          if (index == queues.length - 1)
+            None
+          else
+            listPop(index + 1, queues)
+      }
+    }
+
   def size(queue: String) = {
     redis_cli.llen("resque:queue:%s".format(queue))
   }
 
   def peek(queue: String, start: Int = 0, count: Int = 1) =
     list_range("resque:queue:%s".format(queue), start, count)
-  
+
   def list_range(key: String, start: Int, count: Int) =
-  {
+    {
       val items = redis.lrange(key, start, (start + count) - 1)
       items match {
         case None =>
@@ -74,22 +83,22 @@ class ResQ(redis: RedisClient)
           }
       }
 
-  }
+    }
   //TODO : This would really be possible with reflection
   //       Need the necessary introspection to verify attributes on a class
   def enqueue(klass: java.lang.Class[_], args: String*) {
 
   }
   def enqueue(klass_as_string: String,
-		  	  queue: String, args: List[String]) =
-  {
+    queue: String, args: List[String]) =
+    {
       push(queue, CompactPrinter(Payload(klass_as_string, None, args).toJson))
-  }
+    }
   def enqueue(workerRef: ActorRef,
-		  	  queue: String, args: List[String]) =
-  {
+    queue: String, args: List[String]) =
+    {
       push(queue, CompactPrinter(Payload(workerRef.path.toString, None, args).toJson))
-  }
+    }
   def queues() = {
     redis.smembers("resque:queues")
   }

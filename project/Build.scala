@@ -11,7 +11,7 @@ object BuildSettings {
   import Dependencies._
 
   val buildOrganization = "org.akkaresque"
-  val buildVersion = "0.0.1"
+  val buildVersion = "0.0.2"
   val buildScalaVersion = "2.9.1"
 
   val globalSettings = Seq(
