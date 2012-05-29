@@ -3,7 +3,7 @@ package org.akkaresque
 import cc.spray.json._
 import com.redis._
 import org.akkaresque.Machine._
-import akka.actor.{ Actor, ActorRef, PoisonPill, ActorLogging, ActorSystem, Props,ActorContext }
+import akka.actor.{ Actor, ActorRef, PoisonPill, ActorLogging, ActorSystem, Props, ActorContext }
 import akka.event.LoggingReceive
 import akka.util.duration._
 import akka.util.Duration
@@ -25,35 +25,33 @@ case class jobFailed(ex: Exception, job: Job)
  */
 object Worker {
   def apply(system: ActorContext,
-		    queues: List[String],
-		    redisServer: String = "localhost",
-		    redisPort: Int = 6379,
-		    timeout: Int = 5,
-		    Interval : Int = 5) = {
+    queues: List[String],
+    host: RedisClientPool,
+    timeout: Int = 5,
+    Interval: Int = 5) = {
     //Create a worker and start processing jobs!
-    val worker = system.actorOf(Props(new Worker(queues, redisServer,
-    			 				redisPort,timeout,Interval)))
+    val worker = system.actorOf(Props(new Worker(queues, host, timeout, Interval)))
     worker ! work("bang!")
     worker
   }
-  def all(host: String = "localhost",
-		  port: Int = 6379, context: ActorSystem) = {
-    val resq = ResQ(host, port)
-    val workers = resq.redis_cli.smembers("resque:workers")
-    workers match {
-      case None =>
-        None
-      case Some(worker) =>
-        val workerSet = worker map {
-          case worker =>
-            find(worker.get, resq, host, port, context)
-        }
-        Some(workerSet)
-    }
+  def all(host: RedisClientPool, context: ActorSystem) = {
+    val resq = ResQ(host)
+    resq.redis_cli.withClient(client => {
+      val workers = client.smembers("resque:workers")
+      workers match {
+        case None =>
+          None
+        case Some(worker) =>
+          val workerSet = worker map {
+            case worker =>
+              find(worker.get, resq, client, context)
+          }
+          Some(workerSet)
+      }
+    })
   }
   def find(worker_id: String, resq: ResQ,
-    redisServer: String,
-    redisPort: Int, context: ActorSystem) = {
+    redisServer: RedisClient, context: ActorSystem) = {
     if (exists(worker_id, resq)) {
       val queues = worker_id.split(":")(2).split(",").toList
       val workerRef = context.actorFor(new String(Base64.decode(worker_id.split("1")(1).toString).toArray))
@@ -63,10 +61,11 @@ object Worker {
     }
   }
   def exists(worker_id: String, resq: ResQ) = {
-    resq.redis_cli.sismember("resque:workers", worker_id)
+    resq.redis_cli.withClient(client =>
+      client.sismember("resque:workers", worker_id))
   }
-  def working(host: String, port: Int, context: ActorSystem) = {
-    val workers = all(host, port, context)
+  def working(host: RedisClientPool, context: ActorSystem) = {
+    val workers = all(host, context)
   }
   //TODO: Send a poison pill to all workers
   def shutdown_all(host: String, port: Int, context: ActorSystem) {
@@ -79,15 +78,13 @@ object Worker {
 }
 
 class Worker(queues: List[String],
-			 redisServer: String,
-			 redisPort: Int,
-			 timeout: Int,
-			 interval : Int) extends Actor
-						     with ActorLogging
-						     with DefaultJsonProtocol
-   {
+  host: RedisClientPool,
+  timeout: Int,
+  interval: Int) extends Actor
+  with ActorLogging
+  with DefaultJsonProtocol {
 
-  private val _resq: ResQ = ResQ(redisServer, redisPort)
+  private val _resq: ResQ = ResQ(host)
   private var _shutdown = false
   private var _started: Option[DateTime] = _
   //Path is Base64 encoded to prevent confusion when using remote actor paths
@@ -102,7 +99,6 @@ class Worker(queues: List[String],
     log.info("Stopping Worker")
     unregister_worker
     _set_started(None)
-    _resq.redis_cli.disconnect
   }
 
   def receive = LoggingReceive {
@@ -136,20 +132,28 @@ class Worker(queues: List[String],
   def _set_started(time: Option[DateTime]) {
     time match {
       case None =>
-        _resq.redis_cli.del("resque:worker:%s:started".format(_id))
+        host.withClient(client => {
+          client.del("resque:worker:%s:started".format(_id))
+        })
       case Some(t) =>
         val fmt = ISODateTimeFormat.dateTime();
-        _resq.redis_cli.set("resque:worker:%s:started".format(_id), fmt.print(t))
+        host.withClient(client => {
+          client.set("resque:worker:%s:started".format(_id), fmt.print(t))
+        })
     }
   }
 
   def _get_started() = {
-    val dt = _resq.redis_cli.get("resque:worker:%s:started".format(_id))
-    dt.getOrElse("0").toLong
+    host.withClient(client => {
+      val dt = client.get("resque:worker:%s:started".format(_id))
+      dt.getOrElse("0").toLong
+    })
   }
 
   def unregister_worker() = {
-    _resq.redis_cli.srem("resque:workers", _id)
+    host.withClient(client => {
+      client.srem("resque:workers", _id)
+    })
     _started = None
     Stat("processed:%s".format(_id), _resq).clear
     Stat("failed:%s".format(_id), _resq).clear
@@ -209,12 +213,16 @@ class Worker(queues: List[String],
     //logger.debug('marking as working on')
     val fmt = ISODateTimeFormat.dateTime()
     val now = new DateTime()
-    _resq.redis_cli.set("resque:worker:%s".format(_id),
-      CompactPrinter(workerData(job._queue, fmt.print(now), job._payload).toJson))
+    host.withClient(client => {
+      client.set("resque:worker:%s".format(_id),
+        CompactPrinter(workerData(job._queue, fmt.print(now), job._payload).toJson))
+    })
   }
   def done_working {
     processed
-    _resq.redis_cli.del("resque:worker:%s".format(_id))
+    host.withClient(client => {
+      client.del("resque:worker:%s".format(_id))
+    })
   }
   def processed {
     val total_processed = Stat("processed", _resq)
@@ -237,20 +245,24 @@ class Worker(queues: List[String],
       job
     }
   def job = {
-    val data = _resq.redis_cli.get("resque:worker:%s".format(_id))
-    data match {
-      case None =>
-        None
-      case Some(d) =>
-        val s = JsonParser(d).convertTo[workerData]
-        Some(s)
-    }
+    host.withClient(client => {
+      val data = client.get("resque:worker:%s".format(_id))
+      data match {
+        case None =>
+          None
+        case Some(d) =>
+          val s = JsonParser(d).convertTo[workerData]
+          Some(s)
+      }
+    })
   }
   def state = {
-    if (_resq.redis_cli.exists("resque:worker:%s".format(_id)))
-      "working"
-    else
-      "idle"
+    host.withClient(client => {
+      if (client.exists("resque:worker:%s".format(_id)))
+        "working"
+      else
+        "idle"
+    })
   }
   def _handle_job_exception(ex: Exception, job: Job) {
     job.fail(ex)

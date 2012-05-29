@@ -11,23 +11,38 @@ object Stat {
 }
 //A Stat class which shows the current status of the queue.
 case class Stat(_name: String, _key: String, _resq: ResQ) {
-  
+
   def get = {
-    val v = _resq.redis_cli.get(_key)
-    v match {
-      case None =>
-        0
-      case Some(f) =>
-        f.toInt
-    }
+    _resq.redis_cli.withClient(client => {
+      val v = client.get(_key)
+      v match {
+        case None =>
+          0
+        case Some(f) =>
+          f.toInt
+      }
+    })
   }
-  
+
   def incr(amount: Int = 1) =
-     _resq.redis_cli.incrby(_key, amount)
- 
+    {
+      _resq.redis_cli.withClient(client => {
+        client.incrby(_key, amount)
+      })
+    }
+
   def decr(amount: Int = 1) =
-    _resq.redis_cli.decrby(_key, amount)
-  
+    {
+      _resq.redis_cli.withClient(client => {
+        client.decrby(_key, amount)
+      })
+    }
+
   def clear =
-    _resq.redis_cli.del(_key)
+    {
+      _resq.redis_cli.withClient(client => {
+        client.del(_key)
+      })
+    }
+
 }

@@ -61,8 +61,7 @@ How it Works
      object Demo {
      	def main(args: Array[String]): Unit = {
 			val testActorSystem = ActorSystem("MyApplication")
-			val worker = Worker(testActorSystem, List("Spam","Soda"), "localhost", 6379, 5,5)     	   
-     	}
+      }
      }
     </code></pre>
   
@@ -81,6 +80,10 @@ How it Works
   
 	  class TestActor
 	  		extends Actor {
+    
+    override def preStart{
+      val worker = Worker(context, List("Spam","Soda"), "localhost", 6379, 5,5)     	   
+    }
 	  def receive = {
 	    case perform(args) =>
 	      try {

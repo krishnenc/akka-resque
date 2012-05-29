@@ -26,7 +26,8 @@ object ResqueFailure extends DefaultJsonProtocol {
       delete(resq, payload)
     }
   def delete(resq: ResQ, payload: Payload) = {
-    resq.redis_cli.lrem("resque:failed", 1, CompactPrinter(payload.toJson))
+    resq.redis_cli.withClient(client => {
+    	client.lrem("resque:failed", 1, CompactPrinter(payload.toJson))
+    })
   }
-
 }
