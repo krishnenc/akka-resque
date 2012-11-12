@@ -11,8 +11,8 @@ object BuildSettings {
   import Dependencies._
 
   val buildOrganization = "org.akkaresque"
-  val buildVersion = "0.0.4"
-  val buildScalaVersion = "2.9.1"
+  val buildVersion = "0.0.5"
+  val buildScalaVersion = "2.9.2"
 
   val globalSettings = Seq(
     organization := buildOrganization,
@@ -59,13 +59,13 @@ object Dependencies {
     "Jboss repo" at "https://repository.jboss.org/nexus/content/groups/public-jboss/")
 
   object V {
-    val akka = "2.0.1"
-    val specs2 = "1.7.1"
-    val scalatest = "1.6.1"
+    val akka = "2.0.3"
+    val specs2 = "1.11"
+    val scalatest = "1.7.2"
     val slf4j = "1.6.4"
     val logback = "1.0.0"
-    val sprayjson = "1.1.0"
-    val redis = "2.5"
+    val sprayjson = "1.1.1"
+    val redis = "2.7"
   }
   object Compile {
     val akkaAgent = "com.typesafe.akka" % "akka-agent" % V.akka % "compile"
@@ -76,9 +76,9 @@ object Dependencies {
     val akkaSlf4j = "com.typesafe.akka" % "akka-slf4j" % V.akka % "compile"
     val logback = "ch.qos.logback" % "logback-classic" % "1.0.0" % "runtime"
     val sprayjson = "cc.spray" %% "spray-json" % V.sprayjson % "compile"
-    val redis = "net.debasishg" %% "redisclient" % V.redis % "compile"
     val log4j = "log4j" % "log4j" % "1.2.14" % "compile"
-    val scalaTime = "org.scala-tools.time" %% "time" % "0.5" % "compile"
+    val redis = "net.debasishg" %% "redisclient" % V.redis % "compile"
+    val scalaTime = "org.scala-tools.time" % "time_2.9.1" % "0.5" % "compile"
   }
   object Test {
     val specs2 = "org.specs2" %% "specs2" % V.specs2 % "test"
